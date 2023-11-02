@@ -1,3 +1,4 @@
+use log::info;
 use yew::prelude::*;
 
 #[function_component]
@@ -20,5 +21,9 @@ fn App() -> Html {
 }
 
 fn main() {
+    wasm_logger::init(wasm_logger::Config::default());
+
+    info!("Connection");
+
     yew::Renderer::<App>::new().render();
 }
