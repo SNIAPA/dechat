@@ -1,47 +1,61 @@
-use anyhow::Result;
-use libtor::*;
-use rocket::{config::Environment, Rocket};
-use tokio::io::AsyncReadExt;
-use arti_client::*;
+#![feature(decl_macro)]
 
-static PORT: u16 = 6131;
-static TOR_CONTROL_PORT: u16 = 9051;
+#[macro_use]
+extern crate rocket;
+
+use std::{
+    fs,
+    io::{Read, Write},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    os::unix::prelude::PermissionsExt,
+    panic::catch_unwind,
+    time::Duration,
+};
+
+use anyhow::Result;
+use arti_client::*;
+use backend::rocket;
+use libtor::*;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+mod backend;
+
+pub static PORT: u16 = 6131;
 static TOR_SOCKS_PORT: u16 = 9052;
+static HS_DIR: &str = "/tmp/dechat/hs";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tokio::spawn(async move {
-        Tor::new()
-            .flag(TorFlag::ControlPort(TOR_CONTROL_PORT))
-            .flag(TorFlag::SocksPort(TOR_SOCKS_PORT))
-            .flag(TorFlag::HiddenServiceDir("/tmp/dechat/hs".into()))
-            .flag(TorFlag::HiddenServiceVersion(HiddenServiceVersion::V3))
-            .flag(TorFlag::HiddenServicePort(
-                TorAddress::Port(PORT),
-                None.into(),
-            ))
-            .start()
-            .unwrap();
-        
-    });
+    fs::create_dir_all(HS_DIR).unwrap();
+    let mut perms = fs::metadata(HS_DIR).unwrap().permissions();
+    perms.set_mode(0o700);
+    fs::set_permissions(HS_DIR, perms).unwrap();
+    Tor::new()
+        .flag(TorFlag::SocksPort(TOR_SOCKS_PORT))
+        .flag(TorFlag::Log(LogLevel::Err))
+        .flag(TorFlag::HiddenServiceDir(HS_DIR.into()))
+        .flag(TorFlag::HiddenServiceVersion(HiddenServiceVersion::V3))
+        .flag(TorFlag::HiddenServicePort(
+            TorAddress::Port(PORT),
+            Some(TorAddress::Port(PORT)).into(),
+        ))
+        .start_background();
 
-    tokio::spawn(async move {
-        Rocket::custom(
-            rocket::Config::build(Environment::Staging)
-                .port(PORT)
-                .finalize()
-                .unwrap(),
-        )
-        .launch();
-        
-    });
+    tokio::spawn(async move { rocket().launch() });
 
-    let config = TorClientConfig::default();
+    loop {
+        let _ = catch_unwind(|| {
+            let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), TOR_SOCKS_PORT);
+            let mut stream =
+                tor_stream::TorStream::connect_with_address(socket, "kpjqf7gb7yoo5jk536p75wzyujjipswfraytmfs7irwot4mh5dmxhgyd.onion:6131").unwrap();
+            stream
+            .write_all(b"GET / HTTP/1.1\r\nHost: kpjqf7gb7yoo5jk536p75wzyujjipswfraytmfs7irwot4mh5dmxhgyd.onion\r\nConnection: close\r\n\r\n").unwrap();
+            stream.flush().unwrap();
+            let mut buf = Vec::new();
+            stream.read_to_end(&mut buf).unwrap();
 
-    // Start the Arti client, and let it bootstrap a connection to the Tor network.
-    // (This takes a while to gather the necessary directory information.
-    // It uses cached information when possible.)
-    let tor_client = TorClient::create_bootstrapped(config).await?;
-
-    Ok(())
+            dbg!(String::from_utf8_lossy(&buf));
+        });
+        std::thread::sleep(Duration::from_secs(5))
+    }
 }
