@@ -2,6 +2,7 @@ use anyhow::Result;
 use libtor::*;
 use rocket::{config::Environment, Rocket};
 use tokio::io::AsyncReadExt;
+use arti_client::*;
 
 static PORT: u16 = 6131;
 static TOR_CONTROL_PORT: u16 = 9051;
