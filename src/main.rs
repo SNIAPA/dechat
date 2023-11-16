@@ -1,8 +1,3 @@
-#![feature(decl_macro)]
-
-#[macro_use]
-extern crate rocket;
-
 use std::{
     fs,
     io::{Read, Write},
@@ -13,8 +8,7 @@ use std::{
 };
 
 use anyhow::Result;
-use arti_client::*;
-use backend::rocket;
+use backend::listen;
 use libtor::*;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -41,21 +35,26 @@ async fn main() -> Result<()> {
         ))
         .start_background();
 
-    tokio::spawn(async move { rocket().launch() });
+    tokio::spawn(async move { 
+        listen().await.unwrap();
+    });
 
     loop {
         let _ = catch_unwind(|| {
             let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), TOR_SOCKS_PORT);
             let mut stream =
                 tor_stream::TorStream::connect_with_address(socket, "kpjqf7gb7yoo5jk536p75wzyujjipswfraytmfs7irwot4mh5dmxhgyd.onion:6131").unwrap();
+            dbg!(2);
             stream
-            .write_all(b"GET / HTTP/1.1\r\nHost: kpjqf7gb7yoo5jk536p75wzyujjipswfraytmfs7irwot4mh5dmxhgyd.onion\r\nConnection: close\r\n\r\n").unwrap();
+            .write_all(b"test").unwrap();
+            dbg!(21);
             stream.flush().unwrap();
+            dbg!(3);
             let mut buf = Vec::new();
             stream.read_to_end(&mut buf).unwrap();
 
             dbg!(String::from_utf8_lossy(&buf));
         });
-        std::thread::sleep(Duration::from_secs(5))
+        std::thread::sleep(Duration::from_secs(1))
     }
 }
