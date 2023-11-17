@@ -35,25 +35,29 @@ async fn main() -> Result<()> {
         ))
         .start_background();
 
-    tokio::spawn(async move { 
+    tokio::spawn(async move {
         listen().await.unwrap();
     });
 
     loop {
         let _ = catch_unwind(|| {
             let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), TOR_SOCKS_PORT);
-            let mut stream =
-                tor_stream::TorStream::connect_with_address(socket, "kpjqf7gb7yoo5jk536p75wzyujjipswfraytmfs7irwot4mh5dmxhgyd.onion:6131").unwrap();
+            dbg!(0);
+            let mut stream = tor_stream::TorStream::connect_with_address(
+                socket,
+                "nmqwq5ygh47sorbtixty6wmd4chxwfvza74qw4exok7hfdtk3fph3tad.onion:6131",
+            )
+            .unwrap();
+            let mut buf = Vec::new();
+            dbg!(1);
+            stream.read_to_end(&mut buf).unwrap();
             dbg!(2);
-            stream
-            .write_all(b"test").unwrap();
-            dbg!(21);
+            dbg!(String::from_utf8_lossy(&buf));
             stream.flush().unwrap();
             dbg!(3);
-            let mut buf = Vec::new();
-            stream.read_to_end(&mut buf).unwrap();
+            stream.write(b"test ans").unwrap();
+            dbg!(4);
 
-            dbg!(String::from_utf8_lossy(&buf));
         });
         std::thread::sleep(Duration::from_secs(1))
     }

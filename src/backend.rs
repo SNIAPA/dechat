@@ -1,9 +1,12 @@
 use anyhow::Result;
-use tokio::{net::{TcpListener, TcpSocket, TcpStream}, io::{AsyncReadExt, AsyncWriteExt}};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpListener, TcpSocket, TcpStream},
+};
 
 use crate::PORT;
 
-pub async fn listen() -> Result<()>{
+pub async fn listen() -> Result<()> {
     let listener = TcpListener::bind(format!("127.0.0.1:{}", PORT)).await?;
     loop {
         let (socket, _) = listener.accept().await?;
@@ -11,14 +14,19 @@ pub async fn listen() -> Result<()>{
     }
 }
 
-pub async fn process_socket(mut stream: TcpStream) -> Result<()>{
-    dbg!(1);
-    let mut buf = String::new();
-    stream.read_to_string(&mut buf).await?;
-    dbg!(buf);
-    dbg!(4);
-    stream.write(b"test ans\n\r").await?;
+pub async fn process_socket(mut stream: TcpStream) -> Result<()> {
+    dbg!(21);
+    stream.write(b"test").await?;
+    dbg!(22);
     stream.flush().await?;
+    dbg!(23);
+    let mut buf = String::new();
+    dbg!(24);
+    stream.read_to_string(&mut buf).await?;
+    dbg!(25);
+    stream.flush().await?;
+    dbg!(26);
+
 
     Ok(())
 }
