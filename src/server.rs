@@ -1,25 +1,42 @@
-use anyhow::Result;
+use std::sync::{Arc, Mutex};
+
+use anyhow::{Result, Ok};
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpSocket, TcpStream},
+    io::AsyncReadExt,
+    net::{TcpListener, TcpStream},
 };
 
-use crate::PORT;
+use crate::{protocol::{node::Node, Message}, PORT};
 
-pub async fn listen() -> Result<()> {
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", PORT)).await?;
-    loop {
-        let (socket, _) = listener.accept().await?;
-        tokio::spawn(async move {
-            process_socket(socket).await.unwrap();
-        });
+#[derive(Debug)]
+pub struct Socket {}
+
+impl Socket {
+    pub fn new() -> Socket {
+        Socket {}
     }
-}
+    pub async fn listen(&self, node: Arc<Mutex<Node>>) -> Result<()> {
+        let listener = TcpListener::bind(format!("127.0.0.1:{}", PORT)).await?;
 
-pub async fn process_socket(mut stream: TcpStream) -> Result<()> {
-    let mut buf = Vec::new();
-    stream.read_to_end(&mut buf).await?;
-    dbg!(String::from_utf8_lossy(&buf));
+        loop {
+            let (mut stream, _) = listener.accept().await?;
+            let node_ref = node.clone();
+            tokio::spawn(async move {
+                let mut buf = String::new();
+                dbg!("before");
+                stream.read_to_string(&mut buf).await.unwrap();
+                dbg!("after");
 
-    Ok(())
+                let message = serde_json::from_str::<Message>(&buf).unwrap();
+                dbg!("1");
+
+                let node = node_ref.lock().unwrap();
+                dbg!("2");
+                node.receive(message);
+                dbg!("3");
+
+                Ok(())
+            });
+        }
+    }
 }

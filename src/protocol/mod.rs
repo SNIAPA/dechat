@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod node;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum BodyType {
     #[serde(alias = "echo")]
     Echo,
@@ -10,7 +10,7 @@ pub enum BodyType {
     EchoOk,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Body {
     Echo {
         r#type: BodyType,
@@ -25,7 +25,7 @@ pub enum Body {
     },
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
     src: String,
     dest: String,
