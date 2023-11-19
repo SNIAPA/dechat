@@ -17,6 +17,9 @@ pub async fn listen() -> Result<()> {
 }
 
 pub async fn process_socket(mut stream: TcpStream) -> Result<()> {
+    let mut buf = Vec::new();
+    stream.read_to_end(&mut buf).await?;
+    dbg!(String::from_utf8_lossy(&buf));
 
     Ok(())
 }

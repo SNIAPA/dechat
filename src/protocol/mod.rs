@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+pub mod node;
+
 #[derive(Serialize, Deserialize)]
 pub enum BodyType {
     #[serde(alias = "echo")]
