@@ -2,26 +2,30 @@ use serde::{Deserialize, Serialize};
 
 pub mod node;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum BodyType {
-    #[serde(alias = "echo")]
-    Echo,
-    #[serde(alias = "echo_ok")]
-    EchoOk,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum Body {
+    #[serde(rename = "echo")]
     Echo {
-        r#type: BodyType,
-        msg_id: String,
+        msg_id: usize,
         echo: String,
     },
+    #[serde(rename = "echo_ok")]
     EchoOk {
-        r#type: BodyType,
-        msg_id: String,
-        in_reply_to: String,
+        msg_id: usize,
+        in_reply_to: usize,
         echo: String,
+    },
+    #[serde(rename = "init")]
+    Intit {
+        msg_id: usize,
+        node_id: String,
+        node_ids: Vec<String>,
+    },
+    #[serde(rename = "init_ok")]
+    IntitOk {
+        in_reply_to: usize
     },
 }
 
