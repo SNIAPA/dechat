@@ -1,3 +1,5 @@
+use anyhow::{anyhow, Result};
+
 use super::{Body, Message};
 
 #[derive(Debug)]
@@ -7,24 +9,25 @@ impl Node {
     pub fn new() -> Node {
         Node {}
     }
-    pub fn receive(&self, message: Message) -> Option<Message> {
-        match message.body {
-            Body::Echo { msg_id, echo } => Some(Message {
-                src: message.dest,
-                dest: message.src,
-                body: Body::EchoOk {
-                    msg_id: msg_id.clone(),
+    pub fn receive(&self, message: Message) -> Result<Message> {
+        Ok(Message {
+            src: message.dest,
+            dest: message.src,
+            body: match message.body {
+                Body::Echo { msg_id, echo } => Ok(Body::EchoOk {
+                    msg_id: msg_id.clone() + 1,
                     in_reply_to: msg_id,
                     echo,
-                },
-            }),
-            Body::Intit {
-                msg_id,
-                node_id,
-                node_ids,
-            } => Some(Message { src: message.dest, dest: message.src, body: Body::IntitOk { in_reply_to: msg_id } }),
-
-            _ => None,
-        }
+                }),
+                Body::Intit {
+                    msg_id,
+                    node_id: _,
+                    node_ids: _,
+                } => Ok(Body::IntitOk {
+                    in_reply_to: msg_id,
+                }),
+                _ => Err(anyhow!("invalid or not implemented body")),
+            }?,
+        })
     }
 }
