@@ -24,6 +24,7 @@ impl Node {
                     node_id: _,
                     node_ids: _,
                 } => Ok(Body::IntitOk {
+                    msg_id: msg_id.clone() + 1,
                     in_reply_to: msg_id,
                 }),
                 _ => Err(anyhow!("invalid or not implemented body")),

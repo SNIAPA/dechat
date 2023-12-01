@@ -25,6 +25,7 @@ pub enum Body {
     },
     #[serde(rename = "init_ok")]
     IntitOk {
+        msg_id: usize,
         in_reply_to: usize
     },
 }
