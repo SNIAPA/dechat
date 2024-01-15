@@ -26,23 +26,13 @@ impl Socket {
             let (mut stream, _) = listener.accept().await?;
             let node_ref = node.clone();
             tokio::spawn(async move {
-                let stream_wrapper = Arc::new(Mutex::new(stream));
-                let stream_ref = stream_wrapper.clone();
-                tokio::spawn(async move {
-                    loop {
-                        let mut stream = stream_ref.lock().await;
-                        let mut message = String::new();
-                        stream.read_to_string(&mut message).await.unwrap();
-                        if message.is_empty() {
-                            continue;
-                        }
-                        dbg!("server", message);
-                    }
-                });
-                let mut stream = stream_wrapper.lock().await;
-                dbg!("server sending");
+                let mut message = String::new();
+                dbg!("");
+                stream.read_to_string(&mut message).await.unwrap();
+                dbg!("server", message);
+                dbg!("");
                 stream.write_all(b"test").await.unwrap();
-                dbg!("server sent");
+                dbg!("");
             });
         }
     }

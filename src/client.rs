@@ -26,20 +26,6 @@ impl Client {
         if let Ok(mut stream) =
             tor_stream::TorStream::connect_with_address(socket, address.as_ref())
         {
-            let stream_wrapper = Arc::new(Mutex::new(stream));
-            let stream_ref = stream_wrapper.clone();
-
-            tokio::spawn(async move {
-                loop {
-                    let mut stream = stream_ref.lock().unwrap();
-                    let mut message = String::new();
-                    stream.read_to_string(&mut message).unwrap();
-                    if message.is_empty() {
-                        continue;
-                    }
-                    dbg!("client", message);
-                }
-            });
             let message = Message {
                 src: "c1".to_string(),
                 dest: "c1".to_string(),
@@ -51,10 +37,14 @@ impl Client {
             };
             let serialized = serde_json::to_string(&message).unwrap();
 
-            let mut stream = stream_wrapper.lock().unwrap();
-            dbg!("sending");
+            dbg!("");
             stream.write_all(serialized.as_bytes()).unwrap();
-            dbg!("sent");
+            dbg!("");
+
+            let mut message = String::new();
+            dbg!("");
+            stream.read_to_string(&mut message).unwrap();
+            dbg!("client", message);
         }
         Ok(())
     }
