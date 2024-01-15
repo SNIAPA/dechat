@@ -32,7 +32,7 @@ pub enum Body {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
-    src: String,
-    dest: String,
-    body: Body,
+    pub src: String,
+    pub dest: String,
+    pub body: Body,
 }

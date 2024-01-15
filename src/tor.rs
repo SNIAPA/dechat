@@ -1,12 +1,17 @@
-use std::{fs, os::unix::prelude::PermissionsExt, net::{SocketAddr, IpAddr, Ipv4Addr}, io::ErrorKind, time::Duration};
+use std::{
+    fs,
+    io::ErrorKind,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    os::unix::prelude::PermissionsExt,
+    time::Duration,
+};
 
-use libtor::{Tor, TorFlag, HiddenServiceVersion, TorAddress};
 use anyhow::Result;
+use libtor::{HiddenServiceVersion, Tor, TorAddress, TorFlag};
 
-use crate::{HS_DIR, TOR_SOCKS_PORT, PORT};
+use crate::{HS_DIR, PORT, TOR_SOCKS_PORT};
 
-
-pub async fn start_tor() -> Result<()> {
+pub async fn start_tor() -> Result<String> {
     fs::create_dir_all(HS_DIR).unwrap();
     let mut perms = fs::metadata(HS_DIR).unwrap().permissions();
     perms.set_mode(0o700);
@@ -34,6 +39,9 @@ pub async fn start_tor() -> Result<()> {
         }
         break;
     }
+    let file_name = format!("{}/hostname", HS_DIR);
+    let mut hostname = fs::read_to_string(file_name).unwrap();
+    hostname = hostname.strip_suffix("\n").unwrap().to_owned();
 
-    Ok(())
+    Ok(hostname)
 }

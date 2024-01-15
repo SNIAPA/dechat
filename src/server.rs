@@ -1,12 +1,16 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
-use anyhow::{Result, Ok};
+use anyhow::{Ok, Result};
 use tokio::{
-    io::AsyncReadExt,
+    io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
 };
 
-use crate::{protocol::{node::Node, Message}, PORT};
+use crate::{
+    protocol::{node::Node, Message},
+    PORT,
+};
 
 #[derive(Debug)]
 pub struct Socket {}
@@ -22,20 +26,23 @@ impl Socket {
             let (mut stream, _) = listener.accept().await?;
             let node_ref = node.clone();
             tokio::spawn(async move {
-                let mut buf = String::new();
-                dbg!("before");
-                stream.read_to_string(&mut buf).await.unwrap();
-                dbg!("after");
-
-                let message = serde_json::from_str::<Message>(&buf).unwrap();
-                dbg!("1");
-
-                let node = node_ref.lock().unwrap();
-                dbg!("2");
-                node.receive(message);
-                dbg!("3");
-
-                Ok(())
+                let stream_wrapper = Arc::new(Mutex::new(stream));
+                let stream_ref = stream_wrapper.clone();
+                tokio::spawn(async move {
+                    loop {
+                        let mut stream = stream_ref.lock().await;
+                        let mut message = String::new();
+                        stream.read_to_string(&mut message).await.unwrap();
+                        if message.is_empty() {
+                            continue;
+                        }
+                        dbg!("server", message);
+                    }
+                });
+                let mut stream = stream_wrapper.lock().await;
+                dbg!("server sending");
+                stream.write_all(b"test").await.unwrap();
+                dbg!("server sent");
             });
         }
     }
