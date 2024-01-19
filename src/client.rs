@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-use crate::{protocol::Message, HS_DIR, PORT, TOR_SOCKS_PORT};
+use crate::{HS_DIR, PORT, TOR_SOCKS_PORT};
 
 use anyhow::Result;
 
@@ -26,25 +26,7 @@ impl Client {
         if let Ok(mut stream) =
             tor_stream::TorStream::connect_with_address(socket, address.as_ref())
         {
-            let message = Message {
-                src: "c1".to_string(),
-                dest: "c1".to_string(),
-                body: crate::protocol::Body::Intit {
-                    msg_id: 1,
-                    node_id: "1".to_string(),
-                    node_ids: vec![],
-                },
-            };
-            let serialized = serde_json::to_string(&message).unwrap();
 
-            dbg!("");
-            stream.write_all(serialized.as_bytes()).unwrap();
-            dbg!("");
-
-            let mut message = String::new();
-            dbg!("");
-            stream.read_to_string(&mut message).unwrap();
-            dbg!("client", message);
         }
         Ok(())
     }
