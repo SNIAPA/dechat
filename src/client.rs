@@ -17,17 +17,15 @@ impl Client {
     pub fn new() -> Client {
         Client {}
     }
-    pub fn run(&self, nodes: &Vec<String>) -> Result<()> {
-        //TODO: very temp
-        let hostname = nodes.first().unwrap();
-        let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), TOR_SOCKS_PORT);
-        let address = format!("{}:{}", hostname, PORT);
-
-        if let Ok(mut stream) =
-            tor_stream::TorStream::connect_with_address(socket, address.as_ref())
-        {
-
-        }
+    pub fn run(&self, hostname: String) -> Result<()> {
+        let client = reqwest::Client::builder()
+            .proxy(reqwest::Proxy::http(format!(
+                "socks5://127.0.0.1:{}",
+                TOR_SOCKS_PORT
+            ))?)
+            .build()?;
+        let hostname = format!("{hostname}:{PORT}");
+        client.get(hostname);
         Ok(())
     }
 }

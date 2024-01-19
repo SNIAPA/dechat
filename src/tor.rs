@@ -35,13 +35,15 @@ pub async fn start_tor() -> Result<String> {
 
     let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), TOR_SOCKS_PORT);
     loop {
-        let ans =
-            tor_stream::TorStream::connect_with_address(socket, "https://check.torproject.org/");
+        let client = reqwest::Client::builder()
+            .proxy(reqwest::Proxy::http(format!(
+                "socks5://127.0.0.1:{}",
+                TOR_SOCKS_PORT
+            ))?)
+            .build()?;
+        let ans =client.get("https://check.torproject.org/").build();
         if let Err(e) = ans {
-            if e.kind() == ErrorKind::ConnectionRefused {
-                std::thread::sleep(Duration::from_secs(1));
-                continue;
-            }
+            dbg!(e);
         }
         break;
     }
