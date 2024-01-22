@@ -2,8 +2,8 @@ use rocket::{config::{Config, LogLevel}, get, launch, routes};
 
 use crate::PORT;
 
-#[get("/hello")]
-fn hello() -> String {
+#[get("/")]
+fn test() -> String {
     format!("Hello")
 }
 

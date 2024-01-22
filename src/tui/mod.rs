@@ -4,17 +4,24 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{prelude::*, widgets::*};
-use std::{error::Error, io::{self, Stdout}};
+use std::{
+    error::Error,
+    io::{self, Stdout},
+    sync::Arc,
+};
+use tokio::sync::Mutex;
 
-use self::{input::Input, component::Component};
+use crate::client::Client;
 
-pub mod input;
+use self::{app::App, component::Component, input::Input};
+
 pub mod app;
 pub mod component;
+pub mod input;
 
 type MyTerminal = Terminal<CrosstermBackend<Stdout>>;
 
-pub fn tui(hostname: &str) -> Result<(), Box<dyn Error>> {
+pub fn tui(client: Arc<Mutex<Client>>) -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -23,10 +30,9 @@ pub fn tui(hostname: &str) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let mut input = Input::default();
-    //let components = vec![input];
+    let app = App::new(client);
 
-    run(input,&mut terminal)?;
+    run(app, &mut terminal)?;
 
     // restore terminal
     disable_raw_mode()?;
@@ -40,9 +46,8 @@ pub fn tui(hostname: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-
-pub fn run (mut input: Input, terminal: &mut MyTerminal) -> Result<(), Box<dyn Error>>{
+pub fn run(mut app: App, terminal: &mut MyTerminal) -> Result<(), Box<dyn Error>> {
     loop {
-        input.run(terminal)?;
+        app.run(terminal)?;
     }
 }

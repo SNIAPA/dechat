@@ -1,24 +1,22 @@
 use std::{
     fs,
-    io::ErrorKind,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
     os::unix::prelude::PermissionsExt,
-    time::Duration,
+    time::Duration, thread::{sleep, JoinHandle},
 };
 
-use anyhow::Result;
+use anyhow::{Result, Error};
 use libtor::{HiddenServiceVersion, LogDestination, LogLevel, Tor, TorAddress, TorFlag};
 
 use crate::{HS_DIR, PORT, TOR_SOCKS_PORT};
 
-pub async fn start_tor() -> Result<String> {
+pub async fn start_tor() -> Result<(String, JoinHandle<Result<u8,libtor::Error>>), Error> {
     fs::create_dir_all(HS_DIR).unwrap();
     let mut perms = fs::metadata(HS_DIR).unwrap().permissions();
     perms.set_mode(0o700);
     fs::set_permissions(HS_DIR, perms).unwrap();
     let log_dir = HS_DIR.to_owned() + "/log";
 
-    Tor::new()
+    let handle = Tor::new()
         .flag(TorFlag::SocksPort(TOR_SOCKS_PORT))
         .flag(TorFlag::HiddenServiceDir(HS_DIR.into()))
         .flag(TorFlag::HiddenServiceVersion(HiddenServiceVersion::V3))
@@ -33,17 +31,23 @@ pub async fn start_tor() -> Result<String> {
         ))
         .start_background();
 
-    let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), TOR_SOCKS_PORT);
     loop {
-        let client = reqwest::Client::builder()
-            .proxy(reqwest::Proxy::http(format!(
-                "socks5://127.0.0.1:{}",
-                TOR_SOCKS_PORT
-            ))?)
-            .build()?;
-        let ans =client.get("https://check.torproject.org/").build();
-        if let Err(e) = ans {
+
+        let res = || -> Result<(),reqwest::Error> {
+            let client = reqwest::Client::builder()
+                .proxy(reqwest::Proxy::http(format!(
+                    "http://127.0.0.1:{}",
+                    TOR_SOCKS_PORT
+                ))?)
+                .build()?;
+            client.get("https://check.torproject.org/").build();
+            Ok(())
+        }();
+
+        if let Err(e) = res {
             dbg!(e);
+            sleep(Duration::from_secs(1));
+            continue;
         }
         break;
     }
@@ -51,5 +55,5 @@ pub async fn start_tor() -> Result<String> {
     let mut hostname = fs::read_to_string(file_name).unwrap();
     hostname = hostname.strip_suffix("\n").unwrap().to_owned();
 
-    Ok(hostname)
+    Ok((hostname, handle))
 }

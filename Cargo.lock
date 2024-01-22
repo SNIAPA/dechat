@@ -350,6 +350,7 @@ dependencies = [
  "rocket",
  "serde",
  "serde_json",
+ "stop-thread",
  "tokio",
 ]
 
@@ -1648,6 +1649,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b8c4a4445d81357df8b1a650d0d0d6fbbbfe99d064aa5e02f3e4022061476d8"
 dependencies = [
  "loom",
+]
+
+[[package]]
+name = "stop-thread"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c23d5c8acb801cd2ad6cbae2415ac8e87437c5d1ce8cc2f8fd420c1afacfdb2"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]

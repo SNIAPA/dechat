@@ -1,3 +1,8 @@
+#![feature(unboxed_closures)]
+#![feature(async_closure)]
+#![feature(fn_traits)]
+
+
 pub mod server;
 pub mod tor;
 pub mod client;

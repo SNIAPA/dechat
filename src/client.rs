@@ -8,24 +8,29 @@ use std::{
 
 use crate::{HS_DIR, PORT, TOR_SOCKS_PORT};
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 
 #[derive(Debug)]
-pub struct Client {}
+pub struct Client {
+    url: String,
+    client: reqwest::Client,
+}
 
 impl Client {
-    pub fn new() -> Client {
-        Client {}
+    pub fn new(url: String) -> Result<Client, Error> {
+        Ok(Client {
+            url,
+            client: reqwest::Client::builder()
+                .proxy(reqwest::Proxy::http(format!(
+                    "http://127.0.0.1:{}",
+                    TOR_SOCKS_PORT
+                ))?)
+                .build()?,
+        })
     }
-    pub fn run(&self, hostname: String) -> Result<()> {
-        let client = reqwest::Client::builder()
-            .proxy(reqwest::Proxy::http(format!(
-                "socks5://127.0.0.1:{}",
-                TOR_SOCKS_PORT
-            ))?)
-            .build()?;
-        let hostname = format!("{hostname}:{PORT}");
-        client.get(hostname);
-        Ok(())
+    pub fn send(&mut self, message: &str) -> Result<(), Error> {
+        let url = format!("http://{}",self.url);
+        dbg!(message);
+        self.client.get(url).build().unwrap(); Ok(())
     }
 }
