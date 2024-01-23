@@ -6,7 +6,7 @@ use super::MyTerminal;
 
 
 pub trait Component {
-    fn run(
+    async fn run(
         &mut self,
         terminal: &mut MyTerminal,
     ) -> Result<(), Box<dyn Error>>;

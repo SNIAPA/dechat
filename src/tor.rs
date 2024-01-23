@@ -1,15 +1,16 @@
 use std::{
     fs,
     os::unix::prelude::PermissionsExt,
-    time::Duration, thread::{sleep, JoinHandle},
+    thread::{sleep, JoinHandle},
+    time::Duration,
 };
 
-use anyhow::{Result, Error};
+use anyhow::{Error, Result};
 use libtor::{HiddenServiceVersion, LogDestination, LogLevel, Tor, TorAddress, TorFlag};
 
 use crate::{HS_DIR, PORT, TOR_SOCKS_PORT};
 
-pub async fn start_tor() -> Result<(String, JoinHandle<Result<u8,libtor::Error>>), Error> {
+pub async fn start_tor() -> Result<(String, JoinHandle<Result<u8, libtor::Error>>), Error> {
     fs::create_dir_all(HS_DIR).unwrap();
     let mut perms = fs::metadata(HS_DIR).unwrap().permissions();
     perms.set_mode(0o700);
@@ -31,21 +32,20 @@ pub async fn start_tor() -> Result<(String, JoinHandle<Result<u8,libtor::Error>>
         ))
         .start_background();
 
+    let client = reqwest::Client::builder()
+        .proxy(reqwest::Proxy::all(format!(
+            "socks5h://127.0.0.1:{}",
+            TOR_SOCKS_PORT
+        ))?)
+        .build()?;
     loop {
-
-        let res = || -> Result<(),reqwest::Error> {
-            let client = reqwest::Client::builder()
-                .proxy(reqwest::Proxy::http(format!(
-                    "http://127.0.0.1:{}",
-                    TOR_SOCKS_PORT
-                ))?)
-                .build()?;
-            client.get("https://check.torproject.org/").build();
+        let res = async || -> Result<(), reqwest::Error> {
+            client
+                .execute(client.get("https://check.torproject.org/").build().unwrap()).await.unwrap();
             Ok(())
-        }();
+        }().await;
 
         if let Err(e) = res {
-            dbg!(e);
             sleep(Duration::from_secs(1));
             continue;
         }

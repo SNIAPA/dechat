@@ -5,10 +5,11 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{prelude::*, symbols::block, widgets::*};
-use std::{alloc::System, error::Error, io, process::exit, task::Wake, sync::mpsc::Sender};
+use std::{
+    alloc::System, error::Error, io, process::exit, sync::mpsc::Sender, task::Wake, time::Duration,
+};
 
 use super::MyTerminal;
-
 
 pub struct Input {
     msg_send: Sender<String>,
@@ -35,41 +36,41 @@ impl Input {
 
     fn move_cursor_right(&self) {}
 
-    fn ui(&self, f: &mut Frame) {
+    pub fn ui(&self) -> ratatui::widgets::Paragraph {
         let title = if self.focussed { "INPUT" } else { "input" };
         let block = Block::new().borders(Borders::all()).title(title);
         let input = Paragraph::new(self.text.clone());
-        f.set_cursor(self.text.len() as u16 + 1, 1);
-        let mut size = f.size();
-        size.height = 3;
-        f.render_widget(input.block(block), size);
+        return input.block(block);
     }
 }
 impl Component for Input {
-    fn run(&mut self, terminal: &mut MyTerminal) -> Result<(), Box<dyn Error>> {
-        if self.focussed {
-            let Event::Key(key) = event::read()? else { return Ok(()) };
-            match key.code {
-                KeyCode::Esc => self.focussed = false,
-                KeyCode::Enter => {
-                    self.msg_send.send(self.text.clone()).unwrap();
-                },
-                KeyCode::Char(to_insert) => {
-                    self.enter_char(to_insert);
+    async fn run(&mut self, terminal: &mut MyTerminal) -> Result<(), Box<dyn Error>> {
+        terminal.set_cursor(self.text.len() as u16 + 1, 1)?;
+
+        if event::poll(Duration::from_millis(1)).unwrap() {
+            if self.focussed {
+                let Event::Key(key) = event::read()? else { return Ok(()) };
+                match key.code {
+                    KeyCode::Esc => self.focussed = false,
+                    KeyCode::Enter => {
+                        self.msg_send.send(self.text.clone()).unwrap();
+                    }
+                    KeyCode::Char(to_insert) => {
+                        self.enter_char(to_insert);
+                    }
+                    KeyCode::Backspace => {
+                        self.delete_char();
+                    }
+                    KeyCode::Left => {
+                        self.move_cursor_left();
+                    }
+                    KeyCode::Right => {
+                        self.move_cursor_right();
+                    }
+                    _ => {}
                 }
-                KeyCode::Backspace => {
-                    self.delete_char();
-                }
-                KeyCode::Left => {
-                    self.move_cursor_left();
-                }
-                KeyCode::Right => {
-                    self.move_cursor_right();
-                }
-                _ => {}
             }
         }
-        terminal.draw(|f| self.ui(f))?;
         Ok(())
     }
 }

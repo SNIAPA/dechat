@@ -1,18 +1,10 @@
-use std::{
-    io::{Read, Write},
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-    sync::{Arc, Mutex},
-    thread::sleep,
-    time::Duration,
-};
-
-use crate::{HS_DIR, PORT, TOR_SOCKS_PORT};
+use crate::{PORT, TOR_SOCKS_PORT};
 
 use anyhow::{Error, Result};
 
 #[derive(Debug)]
 pub struct Client {
-    url: String,
+    pub url: String,
     client: reqwest::Client,
 }
 
@@ -21,16 +13,24 @@ impl Client {
         Ok(Client {
             url,
             client: reqwest::Client::builder()
-                .proxy(reqwest::Proxy::http(format!(
-                    "http://127.0.0.1:{}",
+                .proxy(reqwest::Proxy::all(format!(
+                    "socks5h://127.0.0.1:{}",
                     TOR_SOCKS_PORT
                 ))?)
                 .build()?,
         })
     }
-    pub fn send(&mut self, message: &str) -> Result<(), Error> {
-        let url = format!("http://{}",self.url);
-        dbg!(message);
-        self.client.get(url).build().unwrap(); Ok(())
+    pub async fn send(&mut self, message: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let url = format!("http://{}:{}", self.url, PORT);
+        self.client
+            .execute(
+                self.client
+                    .post(url)
+                    .body(message.to_owned())
+                    .build()
+                    .unwrap(),
+            )
+            .await?;
+        Ok(())
     }
 }

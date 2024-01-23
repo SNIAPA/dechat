@@ -7,11 +7,11 @@ use ratatui::{prelude::*, widgets::*};
 use std::{
     error::Error,
     io::{self, Stdout},
-    sync::Arc,
+    sync::Arc, time::Duration,
 };
 use tokio::sync::Mutex;
 
-use crate::client::Client;
+use crate::{client::Client, server::Server};
 
 use self::{app::App, component::Component, input::Input};
 
@@ -21,7 +21,7 @@ pub mod input;
 
 type MyTerminal = Terminal<CrosstermBackend<Stdout>>;
 
-pub fn tui(client: Arc<Mutex<Client>>) -> Result<(), Box<dyn Error>> {
+pub async fn tui(client: Arc<Mutex<Client>>, server: Arc<Mutex<Server>>) -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -30,9 +30,9 @@ pub fn tui(client: Arc<Mutex<Client>>) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let app = App::new(client);
+    let app = App::new(client, server);
 
-    run(app, &mut terminal)?;
+    let err = run(app, &mut terminal).await;
 
     // restore terminal
     disable_raw_mode()?;
@@ -43,11 +43,13 @@ pub fn tui(client: Arc<Mutex<Client>>) -> Result<(), Box<dyn Error>> {
     )?;
     terminal.show_cursor()?;
 
-    Ok(())
+    err
 }
 
-pub fn run(mut app: App, terminal: &mut MyTerminal) -> Result<(), Box<dyn Error>> {
+pub async fn run(mut app: App, terminal: &mut MyTerminal) -> Result<(), Box<dyn Error>> {
     loop {
-        app.run(terminal)?;
+        dbg!("test");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        app.run(terminal).await?;
     }
 }
