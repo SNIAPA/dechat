@@ -30,7 +30,7 @@ pub async fn tui(client: Arc<Mutex<Client>>, server: Arc<Mutex<Server>>) -> Resu
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let app = App::new(client, server);
+    let app = App::new(client, server).await;
 
     let err = run(app, &mut terminal).await;
 
@@ -48,7 +48,6 @@ pub async fn tui(client: Arc<Mutex<Client>>, server: Arc<Mutex<Server>>) -> Resu
 
 pub async fn run(mut app: App, terminal: &mut MyTerminal) -> Result<(), Box<dyn Error>> {
     loop {
-        dbg!("test");
         tokio::time::sleep(Duration::from_millis(100)).await;
         app.run(terminal).await?;
     }

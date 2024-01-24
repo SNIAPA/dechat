@@ -24,25 +24,28 @@ pub struct App {
     client: Arc<Mutex<Client>>,
     server: Arc<Mutex<Server>>,
     input: Input,
+    url: String,
 }
 
 impl App {
-    pub fn new(client: Arc<Mutex<Client>>, server: Arc<Mutex<Server>>) -> Self {
+    pub async fn new(client: Arc<Mutex<Client>>, server: Arc<Mutex<Server>>) -> Self {
         let (tx, rx) = channel::<String>();
 
         let client2 = client.clone();
         tokio::spawn(async move {
-            let mut client = client2.lock().await;
             loop {
                 let msg = rx.recv().unwrap();
+                let mut client = client2.lock().await;
                 client.send(msg.as_str()).await.unwrap();
             }
         });
 
+
         App {
-            client,
+            client: client.clone(),
             server,
             input: Input::new(tx),
+            url: client.lock().await.url.clone()
         }
     }
 
@@ -64,8 +67,7 @@ impl App {
         let messages = self.server.lock().await.messages.clone();
         let list = widgets::List::new(messages);
 
-        let client = self.client.lock().await;
-        let title = widgets::Paragraph::new(client.url.as_str());
+        let title = widgets::Paragraph::new(self.url.as_str());
 
         terminal
             .draw(|f| {
