@@ -1,6 +1,7 @@
 #![feature(unboxed_closures)]
 #![feature(async_closure)]
 #![feature(fn_traits)]
+#![feature(async_fn_in_trait)]
 
 
 pub mod server;

@@ -9,14 +9,15 @@ use rocket::{
 use crate::PORT;
 
 pub struct Server {
-    pub messages: Vec<String>,
+    pub state: Arc<Mutex<crate::tui::state::State>>,
 }
 
 #[post("/", data = "<message>")]
 async fn test(message: String, state: &State<Arc<Mutex<Server>>>) {
     dbg!("lock");
     let mut server = state.lock().await;
-    server.messages.push(message);
+    let mut state = server.state.lock().await;
+    state.messages.push(message);
     dbg!("unlock");
 }
 

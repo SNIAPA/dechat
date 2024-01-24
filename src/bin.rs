@@ -12,7 +12,7 @@ use dechat_lib::{
     client::Client,
     server::{rocket, Server},
     tor::start_tor,
-    tui::tui,
+    tui::{state::State, tui},
 };
 
 pub static PORT: u16 = 6131;
@@ -28,12 +28,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let (hostname, handle) = start_tor().await?;
         tor_handle = Some(handle);
 
-        let client = Arc::new(Mutex::new(Client::new(hostname)?));
-        let server = Arc::new(Mutex::new(Server { messages: vec![] }));
+        let client = Arc::new(Mutex::new(Client::new(hostname.clone())?));
+        let state = Arc::new(Mutex::new(State::new(hostname.as_str())));
+        let server = Arc::new(Mutex::new(Server { state: state.clone() }));
 
         backend_handle = Some(tokio::spawn(rocket(server.clone())));
 
-        tui(client, server).await.unwrap();
+        tui(client, state).await.unwrap();
         Ok(())
     };
 

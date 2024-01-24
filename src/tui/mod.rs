@@ -13,15 +13,16 @@ use tokio::sync::Mutex;
 
 use crate::{client::Client, server::Server};
 
-use self::{app::App, component::Component, input::Input};
+use self::{app::App, component::Component, input::Input, state::State};
 
 pub mod app;
 pub mod component;
 pub mod input;
+pub mod state;
 
 type MyTerminal = Terminal<CrosstermBackend<Stdout>>;
 
-pub async fn tui(client: Arc<Mutex<Client>>, server: Arc<Mutex<Server>>) -> Result<(), Box<dyn Error>> {
+pub async fn tui(client: Arc<Mutex<Client>>, state: Arc<Mutex<State>>) -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -30,7 +31,7 @@ pub async fn tui(client: Arc<Mutex<Client>>, server: Arc<Mutex<Server>>) -> Resu
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let app = App::new(client, server).await;
+    let app = App::new(client, state).await;
 
     let err = run(app, &mut terminal).await;
 

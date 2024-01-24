@@ -13,22 +13,21 @@ use ratatui::{
     prelude::{Constraint, Direction, Layout},
     widgets::{self, ListState, Paragraph},
 };
-use rocket::futures::FutureExt;
 use tokio::sync::Mutex;
 
 use crate::{client::Client, server::Server, tui::component::Component};
 
-use super::input::Input;
+use super::{input::Input, state::State};
 
 pub struct App {
     client: Arc<Mutex<Client>>,
-    server: Arc<Mutex<Server>>,
+    state: Arc<Mutex<State>>,
     input: Input,
     url: String,
 }
 
 impl App {
-    pub async fn new(client: Arc<Mutex<Client>>, server: Arc<Mutex<Server>>) -> Self {
+    pub async fn new(client: Arc<Mutex<Client>>, state: Arc<Mutex<State>>) -> Self {
         let (tx, rx) = channel::<String>();
 
         let client2 = client.clone();
@@ -40,12 +39,11 @@ impl App {
             }
         });
 
-
         App {
             client: client.clone(),
-            server,
+            state,
             input: Input::new(tx),
-            url: client.lock().await.url.clone()
+            url: client.lock().await.url.clone(),
         }
     }
 
@@ -65,7 +63,7 @@ impl App {
         let input: Paragraph = self.input.ui();
 
         dbg!("lock");
-        let messages = self.server.lock().await.messages.clone();
+        let messages = self.state.lock().await.messages.clone();
         dbg!("unlock");
         let list = widgets::List::new(messages);
 
