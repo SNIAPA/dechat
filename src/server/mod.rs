@@ -14,11 +14,11 @@ pub struct Server {
 
 #[post("/", data = "<message>")]
 async fn test(message: String, state: &State<Arc<Mutex<Server>>>) {
-    dbg!("lock");
-    let mut server = state.lock().await;
+    log::debug!("b state s");
+    let server = state.lock().await;
     let mut state = server.state.lock().await;
+    log::debug!("a state s");
     state.messages.push(message);
-    dbg!("unlock");
 }
 
 pub async fn rocket(server: Arc<Mutex<Server>>) {

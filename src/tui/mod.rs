@@ -22,7 +22,7 @@ pub mod state;
 
 type MyTerminal = Terminal<CrosstermBackend<Stdout>>;
 
-pub async fn tui(client: Arc<Mutex<Client>>, state: Arc<Mutex<State>>) -> Result<(), Box<dyn Error>> {
+pub async fn tui(client: Arc<Mutex<Client>>, server: Arc<Mutex<State>>) -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -31,7 +31,7 @@ pub async fn tui(client: Arc<Mutex<Client>>, state: Arc<Mutex<State>>) -> Result
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let app = App::new(client, state).await;
+    let app = App::new(client, server).await;
 
     let err = run(app, &mut terminal).await;
 
@@ -48,8 +48,10 @@ pub async fn tui(client: Arc<Mutex<Client>>, state: Arc<Mutex<State>>) -> Result
 }
 
 pub async fn run(mut app: App, terminal: &mut MyTerminal) -> Result<(), Box<dyn Error>> {
+    let mut interval = tokio::time::interval(Duration::from_millis(10));
     loop {
-        tokio::time::sleep(Duration::from_millis(100)).await;
+
         app.run(terminal).await?;
+        interval.tick().await;
     }
 }

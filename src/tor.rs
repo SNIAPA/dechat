@@ -15,7 +15,7 @@ pub async fn start_tor() -> Result<(String, JoinHandle<Result<u8, libtor::Error>
     let mut perms = fs::metadata(HS_DIR).unwrap().permissions();
     perms.set_mode(0o700);
     fs::set_permissions(HS_DIR, perms).unwrap();
-    let log_dir = HS_DIR.to_owned() + "/log";
+    let log_dir = HS_DIR.to_owned() + "/tor.log";
 
     let handle = Tor::new()
         .flag(TorFlag::SocksPort(TOR_SOCKS_PORT))

@@ -62,9 +62,7 @@ impl App {
 
         let input: Paragraph = self.input.ui();
 
-        dbg!("lock");
         let messages = self.state.lock().await.messages.clone();
-        dbg!("unlock");
         let list = widgets::List::new(messages);
 
         let title = widgets::Paragraph::new(self.url.as_str());
