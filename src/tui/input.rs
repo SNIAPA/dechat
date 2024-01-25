@@ -4,9 +4,11 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use log::debug;
 use ratatui::{prelude::*, symbols::block, widgets::*};
+use tokio::sync::mpsc::Sender;
 use std::{
-    alloc::System, error::Error, io, process::exit, sync::mpsc::Sender, task::Wake, time::Duration,
+    alloc::System, error::Error, io, process::exit,  task::Wake, time::Duration,
 };
 
 use super::MyTerminal;
@@ -53,7 +55,10 @@ impl Component for Input {
                 match key.code {
                     KeyCode::Esc => self.focussed = false,
                     KeyCode::Enter => {
-                        self.msg_send.send(self.text.clone()).unwrap();
+
+                        debug!("as");
+                        self.msg_send.send(self.text.clone()).await.unwrap();
+                        debug!("bs");
                     }
                     KeyCode::Char(to_insert) => {
                         self.enter_char(to_insert);

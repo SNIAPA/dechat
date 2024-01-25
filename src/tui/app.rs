@@ -1,19 +1,14 @@
-use std::{
-    collections::HashMap,
-    process::exit,
-    sync::{mpsc::channel, Arc},
-    thread,
-    time::Duration,
-};
+use std::{collections::HashMap, process::exit, sync::Arc, thread, time::Duration};
 
 use anyhow::Error;
 use crossterm::event::{self, Event, KeyCode};
+use log::debug;
 use ratatui::{
     layout,
     prelude::{Constraint, Direction, Layout},
     widgets::{self, ListState, Paragraph},
 };
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc::channel, Mutex};
 
 use crate::{client::Client, server::Server, tui::component::Component};
 
@@ -28,12 +23,14 @@ pub struct App {
 
 impl App {
     pub async fn new(client: Arc<Mutex<Client>>, state: Arc<Mutex<State>>) -> Self {
-        let (tx, rx) = channel::<String>();
+        let (tx, mut rx) = channel::<String>(100);
 
         let client2 = client.clone();
         tokio::spawn(async move {
             loop {
-                let msg = rx.recv().unwrap();
+                debug!("br");
+                let msg = rx.recv().await.unwrap();
+                debug!("ar");
                 let mut client = client2.lock().await;
                 client.send(msg.as_str()).await.unwrap();
             }

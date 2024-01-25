@@ -3,7 +3,7 @@
 #![feature(fn_traits)]
 #![feature(async_fn_in_trait)]
 
-use std::{sync::Arc, thread::JoinHandle};
+use std::{sync::Arc, thread::JoinHandle, fs};
 
 use client::Client;
 use log::LevelFilter;
@@ -22,6 +22,7 @@ static TOR_SOCKS_PORT: u16 = 9052;
 static HS_DIR: &str = "/tmp/dechat/hs";
 
 pub fn init_log() {
+    fs::create_dir_all(HS_DIR).unwrap();
     let log_file = format!("{}/main.log", HS_DIR);
     simple_logging::log_to_file(log_file, LevelFilter::Debug).unwrap();
 }

@@ -51,8 +51,6 @@ pub async fn run(mut app: App, terminal: &mut MyTerminal) -> Result<(), Box<dyn 
     let mut interval = tokio::time::interval(Duration::from_millis(10));
     loop {
         app.run(terminal).await?;
-        log::debug!("b");
         interval.tick().await;
-        log::debug!("a");
     }
 }
