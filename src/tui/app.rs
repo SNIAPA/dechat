@@ -28,9 +28,7 @@ impl App {
         let client2 = client.clone();
         tokio::spawn(async move {
             loop {
-                debug!("br");
                 let msg = rx.recv().await.unwrap();
-                debug!("ar");
                 let mut client = client2.lock().await;
                 client.send(msg.as_str()).await.unwrap();
             }

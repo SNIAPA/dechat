@@ -55,10 +55,7 @@ impl Component for Input {
                 match key.code {
                     KeyCode::Esc => self.focussed = false,
                     KeyCode::Enter => {
-
-                        debug!("as");
                         self.msg_send.send(self.text.clone()).await.unwrap();
-                        debug!("bs");
                     }
                     KeyCode::Char(to_insert) => {
                         self.enter_char(to_insert);
