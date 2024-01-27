@@ -38,8 +38,8 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
         let (hostname, handle) = start_tor().await?;
         tor_handle = Some(handle);
 
-        let client = Arc::new(Mutex::new(Client::new(hostname.clone())?));
         let state = Arc::new(Mutex::new(State::new(hostname.as_str())));
+        let client = Arc::new(Mutex::new(Client::new(state.clone())?));
         let server = Arc::new(Mutex::new(Server {
             state: state.clone(),
         }));

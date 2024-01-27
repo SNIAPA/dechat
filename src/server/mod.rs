@@ -16,7 +16,7 @@ pub struct Server {
 async fn test(message: String, state: &State<Arc<Mutex<Server>>>) {
     let server = state.lock().await;
     let mut state = server.state.lock().await;
-    state.messages.push(message);
+    state.messages.push(format!("+ {message}"));
 }
 
 pub async fn rocket(server: Arc<Mutex<Server>>) {

@@ -4,9 +4,9 @@ use anyhow::Error;
 use crossterm::event::{self, Event, KeyCode};
 use log::debug;
 use ratatui::{
-    layout,
+    layout::{self, Rect},
     prelude::{Constraint, Direction, Layout},
-    widgets::{self, ListState, Paragraph},
+    widgets::{self, Block, Borders, ListState, Paragraph, Clear},
 };
 use tokio::sync::{mpsc::channel, Mutex};
 
@@ -18,7 +18,7 @@ pub struct App {
     client: Arc<Mutex<Client>>,
     state: Arc<Mutex<State>>,
     input: Input,
-    url: String,
+    connect_popup: bool,
 }
 
 impl App {
@@ -38,7 +38,7 @@ impl App {
             client: client.clone(),
             state,
             input: Input::new(tx),
-            url: client.lock().await.url.clone(),
+            connect_popup: false,
         }
     }
 
@@ -57,17 +57,25 @@ impl App {
 
         let input: Paragraph = self.input.ui();
 
-        let messages = self.state.lock().await.messages.clone();
-        let list = widgets::List::new(messages);
+        let state = self.state.lock().await;
 
-        let title = widgets::Paragraph::new(self.url.as_str());
+        let messages = state.messages.clone();
+        let list = widgets::List::new(messages);
+        let title = widgets::Paragraph::new(state.url.as_str());
 
         terminal
             .draw(|f| {
-                let layout = layout.split(f.size());
+                let area = f.size();
+                let layout = layout.split(area);
                 f.render_widget(title, layout[0]);
                 f.render_widget(list, layout[1]);
                 f.render_widget(input, layout[2]);
+                if self.connect_popup {
+                    let block = Block::default().title("Popup").borders(Borders::ALL);
+                    let area = centered_rect(60, 20, area);
+                    f.render_widget(Clear, area); //this clears out the background
+                    f.render_widget(block, area);
+                }
             })
             .unwrap();
         Ok(())
@@ -84,6 +92,7 @@ impl Component for App {
                 let Event::Key(key) = event::read().unwrap() else { return Ok(()) };
                 match key.code {
                     KeyCode::Char('i') => self.input.focussed = true,
+                    KeyCode::Char('c') => self.connect_popup = true,
                     KeyCode::Char('q') => Err(Error::msg("exit"))?,
                     _ => {}
                 }
@@ -96,4 +105,26 @@ impl Component for App {
 
         Ok(())
     }
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::new(
+        Direction::Vertical,
+        [
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ],
+    )
+    .split(r);
+
+    Layout::new(
+        Direction::Horizontal,
+        [
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ],
+    )
+    .split(popup_layout[1])[1]
 }
