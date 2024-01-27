@@ -6,10 +6,8 @@ use crossterm::{
 };
 use log::debug;
 use ratatui::{prelude::*, symbols::block, widgets::*};
+use std::{alloc::System, error::Error, io, process::exit, task::Wake, time::Duration};
 use tokio::sync::mpsc::Sender;
-use std::{
-    alloc::System, error::Error, io, process::exit,  task::Wake, time::Duration,
-};
 
 use super::MyTerminal;
 
@@ -17,6 +15,7 @@ pub struct Input {
     msg_send: Sender<String>,
     text: String,
     pub focussed: bool,
+    pub multi: bool,
 }
 impl Input {
     pub fn new(send_tx: Sender<String>) -> Input {
@@ -24,6 +23,7 @@ impl Input {
             msg_send: send_tx,
             text: String::new(),
             focussed: false,
+            multi: false,
         }
     }
     fn enter_char(&mut self, to_insert: char) {
@@ -51,25 +51,32 @@ impl Component for Input {
 
         if event::poll(Duration::from_millis(1)).unwrap() {
             if self.focussed {
-                let Event::Key(key) = event::read()? else { return Ok(()) };
-                match key.code {
-                    KeyCode::Esc => self.focussed = false,
-                    KeyCode::Enter => {
-                        self.msg_send.send(self.text.clone()).await.unwrap();
-                    }
-                    KeyCode::Char(to_insert) => {
-                        self.enter_char(to_insert);
-                    }
-                    KeyCode::Backspace => {
-                        self.delete_char();
-                    }
-                    KeyCode::Left => {
-                        self.move_cursor_left();
-                    }
-                    KeyCode::Right => {
-                        self.move_cursor_right();
-                    }
-                    _ => {}
+                match event::read().unwrap() {
+                    Event::Paste(text) => self.text += text.as_str(),
+                    Event::Key(key) => match key.code {
+                        KeyCode::Esc => self.focussed = false,
+                        KeyCode::Enter => {
+                            self.msg_send.send(self.text.clone()).await.unwrap();
+                            self.text.clear();
+                            if !self.multi {
+                                self.focussed = false
+                            }
+                        }
+                        KeyCode::Char(to_insert) => {
+                            self.enter_char(to_insert);
+                        }
+                        KeyCode::Backspace => {
+                            self.delete_char();
+                        }
+                        KeyCode::Left => {
+                            self.move_cursor_left();
+                        }
+                        KeyCode::Right => {
+                            self.move_cursor_right();
+                        }
+                        _ => {}
+                    },
+                    _ => return Ok(()),
                 }
             }
         }

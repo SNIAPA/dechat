@@ -6,7 +6,7 @@ use log::debug;
 use ratatui::{
     layout::{self, Rect},
     prelude::{Constraint, Direction, Layout},
-    widgets::{self, Block, Borders, ListState, Paragraph, Clear},
+    widgets::{self, Block, Borders, Clear, ListState, Paragraph},
 };
 use tokio::sync::{mpsc::channel, Mutex};
 
@@ -17,28 +17,40 @@ use super::{input::Input, state::State};
 pub struct App {
     client: Arc<Mutex<Client>>,
     state: Arc<Mutex<State>>,
-    input: Input,
-    connect_popup: bool,
+    chat_input: Input,
+    connect_input: Input,
 }
 
 impl App {
     pub async fn new(client: Arc<Mutex<Client>>, state: Arc<Mutex<State>>) -> Self {
-        let (tx, mut rx) = channel::<String>(100);
+        let (chat_tx, mut chat_rx) = channel::<String>(100);
 
-        let client2 = client.clone();
+        let client_ref = client.clone();
         tokio::spawn(async move {
             loop {
-                let msg = rx.recv().await.unwrap();
-                let mut client = client2.lock().await;
+                let msg = chat_rx.recv().await.unwrap();
+                let mut client = client_ref.lock().await;
                 client.send(msg.as_str()).await.unwrap();
             }
         });
+        let (connect_tx, mut connect_rx) = channel::<String>(100);
 
+        let state_ref = state.clone();
+        tokio::spawn(async move {
+            loop {
+                let conenction_string = connect_rx.recv().await.unwrap();
+                let mut state = state_ref.lock().await;
+                state.url = conenction_string;
+            }
+        });
+
+        let mut chat_input = Input::new(chat_tx);
+        chat_input.multi = true;
         App {
             client: client.clone(),
             state,
-            input: Input::new(tx),
-            connect_popup: false,
+            chat_input,
+            connect_input: Input::new(connect_tx),
         }
     }
 
@@ -55,7 +67,7 @@ impl App {
             ],
         );
 
-        let input: Paragraph = self.input.ui();
+        let input: Paragraph = self.chat_input.ui();
 
         let state = self.state.lock().await;
 
@@ -70,11 +82,14 @@ impl App {
                 f.render_widget(title, layout[0]);
                 f.render_widget(list, layout[1]);
                 f.render_widget(input, layout[2]);
-                if self.connect_popup {
-                    let block = Block::default().title("Popup").borders(Borders::ALL);
-                    let area = centered_rect(60, 20, area);
+                if self.connect_input.focussed {
+                    let block = Block::default()
+                        .title("conenction string")
+                        .borders(Borders::ALL);
+                    let input = self.connect_input.ui().block(block);
+                    let area = centered_rect(60, 7, area);
                     f.render_widget(Clear, area); //this clears out the background
-                    f.render_widget(block, area);
+                    f.render_widget(input, area);
                 }
             })
             .unwrap();
@@ -88,18 +103,19 @@ impl Component for App {
         terminal: &mut super::MyTerminal,
     ) -> Result<(), Box<dyn std::error::Error>> {
         if event::poll(Duration::from_millis(1)).unwrap() {
-            if !self.input.focussed {
+            if !self.chat_input.focussed && !self.connect_input.focussed {
                 let Event::Key(key) = event::read().unwrap() else { return Ok(()) };
                 match key.code {
-                    KeyCode::Char('i') => self.input.focussed = true,
-                    KeyCode::Char('c') => self.connect_popup = true,
+                    KeyCode::Char('i') => self.chat_input.focussed = true,
+                    KeyCode::Char('c') => self.connect_input.focussed = true,
                     KeyCode::Char('q') => Err(Error::msg("exit"))?,
                     _ => {}
                 }
             }
         }
 
-        self.input.run(terminal).await?;
+        self.chat_input.run(terminal).await?;
+        self.connect_input.run(terminal).await?;
 
         self.render(terminal).await?;
 
