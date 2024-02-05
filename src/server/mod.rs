@@ -1,3 +1,4 @@
+use serde_json::from_str;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -6,7 +7,7 @@ use rocket::{
     post, routes, State,
 };
 
-use crate::PORT;
+use crate::{protocol::message::Message, PORT};
 
 pub struct Server {
     pub state: Arc<Mutex<crate::tui::state::State>>,
@@ -14,9 +15,11 @@ pub struct Server {
 
 #[post("/", data = "<message>")]
 async fn test(message: String, state: &State<Arc<Mutex<Server>>>) {
+    let message = from_str::<Message>(&message).unwrap();
+
     let server = state.lock().await;
     let mut state = server.state.lock().await;
-    state.messages.push(format!("+ {message}"));
+    state.messages.push(format!("{}\n+ {}",message.from, message.value));
 }
 
 pub async fn rocket(server: Arc<Mutex<Server>>) {

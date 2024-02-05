@@ -12,6 +12,7 @@ use tor::start_tor;
 use tui::{state::State, tui};
 
 pub mod client;
+pub mod protocol;
 pub mod server;
 pub mod tor;
 pub mod tui;
@@ -38,7 +39,7 @@ pub async fn run(dir: &str) -> Result<(), Box<dyn std::error::Error>> {
         let (hostname, handle) = start_tor(dir).await?;
         tor_handle = Some(handle);
 
-        let state = Arc::new(Mutex::new(State::new(hostname.as_str())));
+        let state = Arc::new(Mutex::new(State::new(hostname.as_str(), hostname.as_str())));
         let client = Arc::new(Mutex::new(Client::new(state.clone())?));
         let server = Arc::new(Mutex::new(Server {
             state: state.clone(),

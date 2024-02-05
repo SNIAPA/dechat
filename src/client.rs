@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::{PORT, TOR_SOCKS_PORT, tui::state::State};
+use crate::{protocol::message::Message, tui::state::State, PORT, TOR_SOCKS_PORT};
 
 use anyhow::{Error, Result};
-use log::debug;
+use serde_json::to_string;
 use tokio::sync::Mutex;
 
 pub struct Client {
@@ -25,17 +25,17 @@ impl Client {
     }
     pub async fn send(&mut self, message: &str) -> Result<(), Box<dyn std::error::Error>> {
         let mut state = self.state.lock().await;
-        let url = format!("http://{}:{}", state.url, PORT);
-        state.messages.push(format!("- {message}"));
+        let to = state.url.clone();
+        let url = format!("http://{}:{}", to, PORT);
+        state.messages.push(format!("{}\n- {}",to,message));
+        let message = Message {
+            from: state.hostname.clone(),
+            value: message.to_owned(),
+        };
+        let message = to_string(&message).unwrap();
         drop(state);
         self.client
-            .execute(
-                self.client
-                    .post(url)
-                    .body(message.to_owned())
-                    .build()
-                    .unwrap(),
-            )
+            .execute(self.client.post(url).body(message).build().unwrap())
             .await?;
         Ok(())
     }
