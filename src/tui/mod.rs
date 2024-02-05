@@ -48,7 +48,7 @@ pub async fn tui(client: Arc<Mutex<Client>>, server: Arc<Mutex<State>>) -> Resul
 }
 
 pub async fn run(mut app: App, terminal: &mut MyTerminal) -> Result<(), Box<dyn Error>> {
-    let mut interval = tokio::time::interval(Duration::from_millis(10));
+    let mut interval = tokio::time::interval(Duration::from_millis(1));
     loop {
         app.run(terminal).await?;
         interval.tick().await;

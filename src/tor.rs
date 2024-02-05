@@ -7,19 +7,23 @@ use std::{
 
 use anyhow::{Error, Result};
 use libtor::{HiddenServiceVersion, LogDestination, LogLevel, Tor, TorAddress, TorFlag};
+use log::debug;
 
-use crate::{HS_DIR, PORT, TOR_SOCKS_PORT};
+use crate::{PORT, TOR_SOCKS_PORT};
 
-pub async fn start_tor() -> Result<(String, JoinHandle<Result<u8, libtor::Error>>), Error> {
-    fs::create_dir_all(HS_DIR).unwrap();
-    let mut perms = fs::metadata(HS_DIR).unwrap().permissions();
+pub async fn start_tor(
+    dir: &str,
+) -> Result<(String, JoinHandle<Result<u8, libtor::Error>>), Error> {
+    let hs_dir = format!("{dir}/hs");
+    fs::create_dir_all(&hs_dir).unwrap();
+    let mut perms = fs::metadata(&hs_dir).unwrap().permissions();
     perms.set_mode(0o700);
-    fs::set_permissions(HS_DIR, perms).unwrap();
-    let log_dir = HS_DIR.to_owned() + "/tor.log";
+    fs::set_permissions(&hs_dir, perms).unwrap();
+    let log_dir = hs_dir.clone() + "/tor.log";
 
     let handle = Tor::new()
         .flag(TorFlag::SocksPort(TOR_SOCKS_PORT))
-        .flag(TorFlag::HiddenServiceDir(HS_DIR.into()))
+        .flag(TorFlag::HiddenServiceDir(hs_dir.clone()))
         .flag(TorFlag::HiddenServiceVersion(HiddenServiceVersion::V3))
         .flag(TorFlag::LogTo(
             LogLevel::Info,
@@ -39,19 +43,18 @@ pub async fn start_tor() -> Result<(String, JoinHandle<Result<u8, libtor::Error>
         ))?)
         .build()?;
     loop {
-        let res = async || -> Result<(), reqwest::Error> {
-            client
-                .execute(client.get("https://check.torproject.org/").build().unwrap()).await.unwrap();
-            Ok(())
-        }().await;
+        let res = client
+            .execute(client.get("https://check.torproject.org/").build().unwrap())
+            .await;
 
         if let Err(e) = res {
+            debug!("{}", e);
             sleep(Duration::from_secs(1));
             continue;
         }
         break;
     }
-    let file_name = format!("{}/hostname", HS_DIR);
+    let file_name = format!("{}/hostname", hs_dir);
     let mut hostname = fs::read_to_string(file_name).unwrap();
     hostname = hostname.strip_suffix("\n").unwrap().to_owned();
 

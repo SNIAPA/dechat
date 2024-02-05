@@ -1,16 +1,15 @@
-use std::{collections::HashMap, process::exit, sync::Arc, thread, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Error;
 use crossterm::event::{self, Event, KeyCode};
-use log::debug;
 use ratatui::{
-    layout::{self, Rect},
+    layout::Rect,
     prelude::{Constraint, Direction, Layout},
-    widgets::{self, Block, Borders, Clear, ListState, Paragraph},
+    widgets::{self, Block, Borders, Clear, Paragraph},
 };
 use tokio::sync::{mpsc::channel, Mutex};
 
-use crate::{client::Client, server::Server, tui::component::Component};
+use crate::{client::Client, tui::component::Component};
 
 use super::{input::Input, state::State};
 

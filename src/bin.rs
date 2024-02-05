@@ -2,14 +2,18 @@
 extern crate rocket;
 
 
+use std::env;
+
 use anyhow::Result;
 
-pub static PORT: u16 = 6131;
-pub static TOR_SOCKS_PORT: u16 = 9052;
-pub static HS_DIR: &str = "/tmp/dechat/hs";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    dechat_lib::run().await?;
+    #[allow(deprecated)]
+    let dir = env::home_dir().unwrap();
+    let dir = dir.to_str().unwrap();
+    let dir = format!("{dir}/.local/share/dechat");
+
+    dechat_lib::run(&dir).await?;
     Ok(())
 }
